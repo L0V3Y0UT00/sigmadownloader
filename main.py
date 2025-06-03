@@ -28,7 +28,7 @@ def detect_platform(url):
         return None
 
 def download_media(url, media_type, output_dir=f"{os.path.expanduser('~')}/Downloads/Media"):
-    """Download video or audio from the given URL"""
+    """Download video or audio from the given URL and return file path"""
     os.makedirs(output_dir, exist_ok=True)
     
     platform = detect_platform(url)
@@ -46,6 +46,7 @@ def download_media(url, media_type, output_dir=f"{os.path.expanduser('~')}/Downl
                 '--extract-audio',
                 '--audio-format', 'mp3',
                 '-o', f'{output_dir}/%(title)s.%(ext)s',
+                '--print', 'filename',
                 url
             ]
         else:  # video
@@ -53,6 +54,7 @@ def download_media(url, media_type, output_dir=f"{os.path.expanduser('~')}/Downl
                 'yt-dlp',
                 '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
                 '-o', f'{output_dir}/%(title)s.%(ext)s',
+                '--print', 'filename',
                 url
             ]
         
@@ -60,6 +62,13 @@ def download_media(url, media_type, output_dir=f"{os.path.expanduser('~')}/Downl
         
         if result.returncode == 0:
             print(f"{media_type.capitalize()} download completed successfully!")
+            # Extract file path from yt-dlp output
+            file_path = result.stdout.strip().split('\n')[-1]
+            if os.path.exists(file_path):
+                print(f"Downloaded file path: {file_path}")
+            else:
+                print("Warning: File path not found, but download reported success.")
+            return file_path
         else:
             print(f"Download failed: {result.stderr}")
             sys.exit(1)

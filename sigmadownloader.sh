@@ -67,16 +67,22 @@ if [ ! -f "main.py" ]; then
     exit 1
 fi
 
-# Run the Python script with the provided URL and auto-select video
-python3 main.py "$1" video
-
+# Run the Python script with the provided URL and auto-select video, capture output
+output=$(python3 main.py "$1" video 2>&1)
 if [ $? -eq 0 ]; then
     echo "Download completed successfully!"
+    # Extract file path from Python script output
+    file_path=$(echo "$output" | grep "Downloaded file path:" | cut -d ' ' -f 3-)
+    if [ -n "$file_path" ]; then
+        echo "Downloaded file saved to: $file_path"
+    else
+        echo "Warning: Could not determine downloaded file path."
+    fi
     # Stage all files
     git add sigmadownloader.sh main.py README.md read.md read.txt 2>/dev/null
     # Check if there are changes to commit
     if git status --porcelain | grep . >/dev/null; then
-        git commit -m "Auto: Downloaded media and updated sigmadownloader"
+        git commit -m "Auto: Downloaded media to $file_path and updated sigmadownloader"
         # Pull with rebase to handle remote changes
         git pull --rebase origin main
         if [ $? -eq 0 ]; then
@@ -97,5 +103,6 @@ if [ $? -eq 0 ]; then
     fi
 else
     echo "Download failed. Check the URL or your internet connection."
+    echo "Error output: $output"
     exit 1
 fi
