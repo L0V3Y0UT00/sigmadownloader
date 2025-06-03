@@ -1,5 +1,5 @@
-SigmaDownloader
-
+#SigmaDownloader
+##bash -c "$(curl -fsSL https://raw.githubusercontent.com/L0V3Y0UT00/sigmadownloader/main/run_sigmadownloader.sh)"
 SigmaDownloader is a local command-line tool for Termux, Linux, and macOS that downloads video or audio from YouTube, Facebook, or TikTok. It installs all required dependencies, prompts for a URL, platform, and media type selection, and displays the downloaded file path.
 
 Features
@@ -244,3 +244,4 @@ No Git operations are performed; the script runs locally after cloning.
 License
 
 This project is provided as-is, with no warranty. Use responsibly and in compliance with local laws.
+
