@@ -79,8 +79,8 @@ if __name__ == "__main__":
     
     # Prompt user to choose audio or video
     while True:
-        media_choice = input("Do you want to download audio or video? (audio/video): ").lower()
-        if media_choice in ['audio', 'video']:
+        media_choice = input("Do you want to download audio or video? (audio - A /video - V): ").lower()
+        if media_choice in ['a', 'v']:
             break
         print("Invalid choice. Please enter 'audio' or 'video'.")
     
