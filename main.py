@@ -1,98 +1,117 @@
-import os
-import subprocess
-import sys
-import re
+#!/bin/bash
 
-def check_yt_dlp():
-    """Check if yt-dlp is installed, install if not"""
-    try:
-        subprocess.run(['yt-dlp', '--version'], check=True, capture_output=True)
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("Installing yt-dlp...")
-        try:
-            subprocess.run([sys.executable, '-m', 'pip', 'install', '-U', 'yt-dlp'], check=True)
-        except subprocess.CalledProcessError:
-            print("Failed to install yt-dlp. Please install it manually with: pip install -U yt-dlp")
-            sys.exit(1)
+# Function to install packages on Termux
+install_packages_termux() {
+    pkg update -y && pkg upgrade -y
+    pkg install -y python
+    pip install --upgrade pip
+}
 
-def detect_platform(platform, url):
-    """Verify if the selected platform matches the provided URL"""
-    platform_patterns = {
-        'youtube': r'youtube\.com|youtu\.be',
-        'facebook': r'facebook\.com|fb\.com|fb\.watch',
-        'tiktok': r'tiktok\.com'
-    }
-    
-    if platform.lower() not in platform_patterns:
-        print(f"Error: Invalid platform {platform}. Supported platforms: YouTube, Facebook, TikTok.")
-        sys.exit(1)
-    
-    pattern = platform_patterns[platform.lower()]
-    if not re.search(pattern, url, re.IGNORECASE):
-        print(f"Error: URL does not match selected platform {platform}.")
-        sys.exit(1)
-    
-    return platform.lower()
+# Function to install packages on Debian/Ubuntu-based systems
+install_packages_debian() {
+    sudo apt-get update
+    sudo apt-get install -y python3 python3-pip
+}
 
-def download_media(url, platform, media_type, output_dir=f"{os.path.expanduser('~')}/Downloads/Media"):
-    """Download video or audio from the given URL and return file path"""
-    os.makedirs(output_dir, exist_ok=True)
-    
-    platform = detect_platform(platform, url)
-    print(f"Downloading from {platform.capitalize()}")
-    
-    try:
-        if media_type.lower() == 'audio':
-            cmd = [
-                'yt-dlp',
-                '-f', 'bestaudio',
-                '--extract-audio',
-                '--audio-format', 'mp3',
-                '-o', f'{output_dir}/%(title)s.%(ext)s',
-                '--print', 'filename',
-                url
-            ]
-        else:  # video
-            cmd = [
-                'yt-dlp',
-                '-f', 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
-                '-o', f'{output_dir}/%(title)s.%(ext)s',
-                '--print', 'filename',
-                url
-            ]
-        
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        
-        if result.returncode == 0:
-            print(f"{media_type.capitalize()} download completed successfully!")
-            # Extract file path from yt-dlp output
-            file_path = result.stdout.strip().split('\n')[-1]
-            if os.path.exists(file_path):
-                print(f"Downloaded file path: {file_path}")
-            else:
-                print("Warning: File path not found, but download reported success.")
-            return file_path
-        else:
-            print(f"Download failed: {result.stderr}")
-            sys.exit(1)
-            
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
-        sys.exit(1)
+# Function to install packages on macOS
+install_packages_macos() {
+    brew install python3
+}
 
-if __name__ == "__main__":
-    if len(sys.argv) < 4:
-        print("Usage: python main.py <video_url> <platform> <media_type>")
-        sys.exit(1)
-    
-    url = sys.argv[1]
-    platform = sys.argv[2]
-    media_type = sys.argv[3]
-    
-    check_yt_dlp()
-    
-    if media_type.lower() not in ['audio', 'video']:
-        print("Invalid media type. Must be 'audio' or 'video'.")
-        sys.exit(1)
-    
-    download_media(url, platform, media_type)
+# Function to detect OS and install dependencies
+install_dependencies() {
+    if [[ -n "$TERMUX_VERSION" ]]; then
+        echo "Detected Termux. Installing dependencies..."
+        install_packages_termux
+        # Ensure Termux storage is set up
+        if ! command -v termux-setup-storage &> /dev/null; then
+            pkg install -y termux-api
+        fi
+        termux-setup-storage
+    elif [[ -f /etc/debian_version ]]; then
+        echo "Detected Debian/Ubuntu-based system. Installing dependencies..."
+        install_packages_debian
+    elif [[ "$(uname)" == "Darwin" ]]; then
+        echo "Detected macOS. Installing dependencies..."
+        if ! command -v brew &> /dev/null; then
+            echo "Installing Homebrew..."
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        fi
+        install_packages_macos
+    else
+        echo "Unsupported OS. Please install Python3 and pip manually."
+        exit 1
+    fi
+}
+
+# Check and install Python
+if ! command -v python3 &> /dev/null; then
+    echo "Python3 not found. Installing dependencies..."
+    install_dependencies
+fi
+
+# Check and install pip
+if ! command -v pip3 &> /dev/null; then
+    echo "pip3 not found. Installing pip..."
+    curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+    python3 get-pip.py
+    rm get-pip.py
+fi
+
+# Check and install yt-dlp
+if ! command -v yt-dlp &> /dev/null; then
+    echo "Installing yt-dlp..."
+    pip3 install -U yt-dlp
+fi
+
+# Ensure main.py exists
+if [ ! -f "main.py" ]; then
+    echo "Error: main.py not found in the current directory."
+    exit 1
+fi
+
+# Prompt for URL
+echo "Enter the video URL (YouTube, Facebook, or TikTok):"
+read -r url
+if [ -z "$url" ]; then
+    echo "Error: No URL provided. Exiting."
+    exit 1
+fi
+
+# Prompt for platform choice
+echo "Select platform (f - Facebook, t - TikTok, y - YouTube):"
+read -n 1 platform_choice
+echo ""
+case $platform_choice in
+    f|F) platform="facebook" ;;
+    t|T) platform="tiktok" ;;
+    y|Y) platform="youtube" ;;
+    *) echo "Invalid platform choice. Exiting."; exit 1 ;;
+esac
+
+# Prompt for media type choice
+echo "Select media type (a - Audio, v - Video):"
+read -n 1 media_choice
+echo ""
+case $media_choice in
+    a|A) media_type="audio" ;;
+    v|V) media_type="video" ;;
+    *) echo "Invalid media type choice. Exiting."; exit 1 ;;
+esac
+
+# Run the Python script with the provided URL, platform, and media type
+output=$(python3 main.py "$url" "$platform" "$media_type" 2>&1)
+if [ $? -eq 0 ]; then
+    echo "Download completed successfully!"
+    # Extract file path from Python script output
+    file_path=$(echo "$output" | grep "Downloaded file path:" | cut -d ' ' -f 3-)
+    if [ -n "$file_path" ]; then
+        echo "Downloaded file saved to: $file_path"
+    else
+        echo "Warning: Could not determine downloaded file path."
+    fi
+else
+    echo "Download failed. Check the URL, platform choice, or internet connection."
+    echo "Error output: $output"
+    exit 1
+fi
