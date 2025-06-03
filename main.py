@@ -69,19 +69,17 @@ def download_media(url, media_type, output_dir=f"{os.path.expanduser('~')}/Downl
         sys.exit(1)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python main.py <video_url>")
+    if len(sys.argv) < 2:
+        print("Usage: python main.py <video_url> [audio|video]")
         sys.exit(1)
     
     url = sys.argv[1]
+    media_type = sys.argv[2] if len(sys.argv) > 2 else "video"
     
     check_yt_dlp()
     
-    # Prompt user to choose audio or video
-    while True:
-        media_choice = input("Do you want to download audio or video? (audio - A /video - V): ").lower()
-        if media_choice in ['a', 'v']:
-            break
-        print("Invalid choice. Please enter 'audio' or 'video'.")
+    if media_type.lower() not in ['audio', 'video']:
+        print("Invalid media type. Using 'video' as default.")
+        media_type = "video"
     
-    download_media(url, media_choice)
+    download_media(url, media_type)
