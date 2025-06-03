@@ -67,8 +67,29 @@ if [ ! -f "main.py" ]; then
     exit 1
 fi
 
-# Run the Python script with the provided URL and auto-select video, capture output
-output=$(python3 main.py "$1" video 2>&1)
+# Prompt for platform choice
+echo "Select platform (f - Facebook, t - TikTok, y - YouTube):"
+read -n 1 platform_choice
+echo ""
+case $platform_choice in
+    f|F) platform="facebook" ;;
+    t|T) platform="tiktok" ;;
+    y|Y) platform="youtube" ;;
+    *) echo "Invalid choice. Exiting."; exit 1 ;;
+esac
+
+# Prompt for media type choice
+echo "Select media type (a - Audio, v - Video):"
+read -n 1 media_choice
+echo ""
+case $media_choice in
+    a|A) media_type="audio" ;;
+    v|V) media_type="video" ;;
+    *) echo "Invalid choice. Exiting."; exit 1 ;;
+esac
+
+# Run the Python script with the provided URL, platform, and media type
+output=$(python3 main.py "$1" "$platform" "$media_type" 2>&1)
 if [ $? -eq 0 ]; then
     echo "Download completed successfully!"
     # Extract file path from Python script output
@@ -82,7 +103,7 @@ if [ $? -eq 0 ]; then
     git add sigmadownloader.sh main.py README.md read.md read.txt 2>/dev/null
     # Check if there are changes to commit
     if git status --porcelain | grep . >/dev/null; then
-        git commit -m "Auto: Downloaded media to $file_path and updated sigmadownloader"
+        git commit -m "Auto: Downloaded $media_type from $platform to $file_path"
         # Pull with rebase to handle remote changes
         git pull --rebase origin main
         if [ $? -eq 0 ]; then
@@ -95,14 +116,15 @@ if [ $? -eq 0 ]; then
                 exit 1
             fi
         else
-            echo "Failed to pull changes. Resolve conflicts manually with 'git rebase --continue' or 'git rebase --abort', then push again."
+            echo "Failed to pull changes. Resolve conflicts manually with 'git rebase --continue' or 'git rebase --abort'."
             exit 1
         fi
     else
         echo "No changes to commit. Repository is up to date."
     fi
 else
-    echo "Download failed. Check the URL or your internet connection."
+    echo "Usage Error: $0 [URL |media|]"
+    echo "Download failed. Check the URL, platform choice, or credentials."
     echo "Error output: $output"
     exit 1
 fi
