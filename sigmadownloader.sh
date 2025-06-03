@@ -13,13 +13,11 @@ install_packages_macos() {
 
 # Function to detect OS and install dependencies
 install_dependencies() {
-    # Check if running on Linux (Debian/Ubuntu) or macOS
     if [[ -f /etc/debian_version ]]; then
         echo "Detected Debian/Ubuntu-based system. Installing dependencies..."
         install_packages_debian
     elif [[ "$(uname)" == "Darwin" ]]; then
         echo "Detected macOS. Installing dependencies..."
-        # Check if Homebrew is installed, install if not
         if ! command -v brew &> /dev/null; then
             echo "Installing Homebrew..."
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -69,29 +67,33 @@ if [ ! -f "main.py" ]; then
     exit 1
 fi
 
-# Run the Python script with the provided URL
-python3 main.py "$1"
+# Run the Python script with the provided URL and auto-select video
+python3 main.py "$1" video
 
 if [ $? -eq 0 ]; then
     echo "Download completed successfully!"
-    # Stage all files, including untracked ones
-    git add sigmadownloader.sh main.py read.md read.markdown
-    # Commit changes
-    git commit -m "Updated sigmadownloader with latest changes for URL processing" || true
-    # Pull with rebase to handle remote changes
-    git pull --rebase origin main
-    if [ $? -eq 0 ]; then
-        # Push changes to the repository
-        git push origin main
+    # Stage all files
+    git add sigmadownloader.sh main.py README.md read.md read.txt 2>/dev/null
+    # Check if there are changes to commit
+    if git status --porcelain | grep . >/dev/null; then
+        git commit -m "Auto: Downloaded media and updated sigmadownloader"
+        # Pull with rebase to handle remote changes
+        git pull --rebase origin main
         if [ $? -eq 0 ]; then
-            echo "Code pushed to repository successfully!"
+            # Push changes to the repository
+            git push origin main
+            if [ $? -eq 0 ]; then
+                echo "Code pushed to repository successfully!"
+            else
+                echo "Failed to push code to repository. Check Git configuration or credentials."
+                exit 1
+            fi
         else
-            echo "Failed to push code to repository. Check Git configuration or credentials."
+            echo "Failed to pull changes. Resolve conflicts manually with 'git rebase --continue' or 'git rebase --abort', then push again."
             exit 1
         fi
     else
-        echo "Failed to pull changes. Resolve conflicts manually with 'git rebase --continue' or 'git rebase --abort', then push again."
-        exit 1
+        echo "No changes to commit. Repository is up to date."
     fi
 else
     echo "Download failed. Check the URL or your internet connection."
