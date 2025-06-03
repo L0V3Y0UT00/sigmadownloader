@@ -1,3 +1,4 @@
+```bash
 #!/bin/bash
 
 # Function to install packages on Termux
@@ -64,15 +65,17 @@ if ! command -v yt-dlp &> /dev/null; then
     pip3 install -U yt-dlp
 fi
 
-# Check if URL is provided
-if [ -z "$1" ]; then
-    echo "Usage: $0 <video_url>"
-    exit 1
-fi
-
 # Ensure main.py exists
 if [ ! -f "main.py" ]; then
     echo "Error: main.py not found in the current directory."
+    exit 1
+fi
+
+# Prompt for URL
+echo "Enter the video URL (YouTube, Facebook, or TikTok):"
+read -r url
+if [ -z "$url" ]; then
+    echo "Error: No URL provided. Exiting."
     exit 1
 fi
 
@@ -83,3 +86,30 @@ echo ""
 case $platform_choice in
     f|F) platform="facebook" ;;
     t|T) platform="tiktok" ;;
+    y|Y) platform="youtube" ;;
+    *) echo "Invalid platform choice. Exiting."; exit 1 ;;
+esac
+
+# Prompt for media type choice
+echo "Select media type (a - Audio, v - Video):"
+read -n 1 media_choice
+echo ""
+case $media_choice in
+    a|A) media_type="audio" ;;
+    v|V) media_type="video" ;;
+    *) echo "Invalid media type choice. Exiting."; exit 1 ;;
+esac
+
+# Run the Python script with the provided URL, platform, and media type
+output=$(python3 main.py "$url" "$platform" "$media_type" 2>&1)
+if [ $? -eq 0 ]; then
+    echo "Download completed successfully!"
+    # Extract file path from Python script output
+    file_path=$(echo "$output" | grep "Downloaded file path:" | cut -d ' ' -f 3-)
+    if [ -n "$file_path" ]; then
+        echo "Downloaded file saved to: $file_path"
+    else
+        echo "Warning: Could not determine downloaded file path."
+    fi
+else
+    echo "Download failed. Check the URL, platform choice, or internet connection."
