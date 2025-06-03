@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Check if Python is installed
+# Check if Python3 is installed
 if ! command -v python3 &> /dev/null; then
-    echo "Python3 is required but not found. Please install Python3."
+    echo "Error: Python3 is required but not found. Please install Python3."
     exit 1
 fi
 
@@ -13,11 +13,21 @@ if [ -z "$1" ]; then
 fi
 
 # Run the Python script with the provided URL
-python3 download_media.py "$1"
+python3 main.py "$1"
 
 if [ $? -eq 0 ]; then
-    echo "Operation completed successfully!"
+    echo "Download completed successfully!"
+    # Stage, commit, and push changes to the repository
+    git add sigmadownloader.sh main.py read.md read.markdown
+    git commit -m "Updated sigmadownloader with latest changes for URL processing"
+    git push origin main
+    if [ $? -eq 0 ]; then
+        echo "Code pushed to repository successfully!"
+    else
+        echo "Failed to push code to repository. Check Git configuration."
+        exit 1
+    fi
 else
-    echo "Operation failed. Check the URL or your internet connection."
+    echo "Download failed. Check the URL or your internet connection."
     exit 1
 fi

@@ -70,7 +70,7 @@ def download_media(url, media_type, output_dir=f"{os.path.expanduser('~')}/Downl
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python download_media.py <video_url>")
+        print("Usage: python main.py <video_url>")
         sys.exit(1)
     
     url = sys.argv[1]
